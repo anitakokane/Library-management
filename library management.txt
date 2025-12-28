@@ -1,0 +1,279 @@
+create table Books(
+book_id int primary key,
+title varchar(50),
+author_id int,
+category varchar(20),
+isbn int unique,
+published_date date,
+price decimal(10,2),
+available_copies int,
+foreign key(author_id) references Authors(author_id)
+
+);
+
+INSERT INTO Books VALUES
+(101, 'Half Girlfriend', 1, 'Romance', 978014, '2014-10-01', 299.00, 10),
+(102, 'Malgudi Days', 2, 'Fiction', 9788185, '1943-01-01', 250.00, 7),
+(103, 'The God of Small Things', 3, 'Novel', 9788172, '1997-04-04', 399.00, 5),
+(104, 'Harry Potter', 4, 'Fantasy', 9780747, '1997-06-26', 499.00, 12),
+(105, 'The Alchemist', 5, 'Philosophy', 9780061, '1988-01-01', 350.00, 8);
+
+
+#Authors
+
+create table Authors(
+author_id int primary key,
+name varchar(50),
+email varchar(30)
+);
+
+
+INSERT INTO Authors VALUES
+(1, 'Chetan Bhagat', 'chetan@gmail.com'),
+(2, 'R. K. Narayan', 'rknarayan@gmail.com'),
+(3, 'Arundhati Roy', 'arundhati@gmail.com'),
+(4, 'J. K. Rowling', 'jkrowling@gmail.com'),
+(5, 'Paulo Coelho', 'paulo@gmail.com');
+
+
+drop table Members;
+create table Members(
+member_id int primary key,
+name varchar(50),
+email varchar(30),
+phone_number int,
+membership_date date
+);
+
+INSERT INTO Members VALUES
+(201, 'Anita Kokane', 'anita@gmail.com', 1234567890, '2024-01-10'),
+(202, 'Rahul Sharma', 'rahul@gmail.com', 1234567891, '2024-02-15'),
+(203, 'Neha Patel', 'neha@gmail.com', 1234567892, '2024-03-20'),
+(204, 'Amit Verma', 'amit@gmail.com', 1234567893, '2024-04-05'),
+(205, 'Priya Singh', 'priya@gmail.com',1234567894, '2024-05-12');
+
+
+create table Transactions(
+transaction_id int primary key,
+member_id int,
+book_id int,
+borrow_date date,
+return_date date,
+fine_amount decimal(10,2),
+foreign key(member_id) references Members(member_id) on delete cascade,
+foreign key(book_id) references Books(book_id)
+
+);
+
+
+INSERT INTO Transactions VALUES
+(301, 201, 101, '2024-06-01', '2024-06-10', 0.00),
+(302, 202, 102, '2024-06-03', '2024-06-15', 10.00),
+(303, 203, 103, '2024-06-05', '2024-06-20', 20.00),
+(304, 204, 104, '2024-06-07', '2024-06-18', 0.00),
+(305, 205, 105, '2024-06-09', '2024-06-25', 15.00);
+
+
+
+#1
+INSERT INTO Authors VALUES
+(6, 'George Orwell', 'orwell@gmail.com');
+INSERT INTO Books VALUES
+(106, '1984', 6, 'Science', 97804515, '1949-06-08', 420.00, 6);
+INSERT INTO Members VALUES
+(206, 'Riya Mehta', 'riya@gmail.com', 1234567896, '2025-08-10');
+
+
+UPDATE Books
+SET available_copies = available_copies - 1
+WHERE book_id = 101;
+
+UPDATE Books
+SET available_copies = available_copies + 1
+WHERE book_id = 101;
+
+DELETE FROM Members
+WHERE member_id NOT IN (
+SELECT DISTINCT member_id
+FROM Transactions
+WHERE borrow_date >= DATE_SUB(CURDATE(), INTERVAL 1 YEAR)
+);
+
+
+select * from Books where available_copies>0;
+
+#2
+SELECT * 
+FROM Books
+WHERE published_date > '2015-01-01';
+
+
+select book_id,price as expensive_books from Books order by price desc limit 5;
+
+SELECT * FROM Members
+WHERE membership_date < '2022-01-01';
+
+
+#3
+
+SELECT *
+FROM Books
+WHERE category = 'Science'
+AND price < 500;
+
+SELECT *
+FROM Books
+WHERE available_copies = 0;
+
+
+SELECT DISTINCT m.*
+FROM Members m
+LEFT JOIN Transactions t ON m.member_id = t.member_id
+GROUP BY m.member_id
+HAVING m.membership_date > '2020-01-01'
+OR COUNT(t.book_id) > 3;
+   
+
+
+#4
+SELECT * FROM Books ORDER BY title ASC;
+
+SELECT member_id, COUNT(book_id) AS total_books_borrowed FROM Transactions GROUP BY member_id;
+
+SELECT category, COUNT(*) AS total_books FROM Books GROUP BY category;
+
+#5
+
+SELECT category, COUNT(*) AS total_books FROM Books GROUP BY category;
+
+SELECT AVG(price) AS average_price FROM Books;
+
+SELECT book_id, COUNT(book_id) AS borrow_count FROM Transactions GROUP BY book_id ORDER BY borrow_count DESC LIMIT 1;
+
+SELECT SUM(fine_amount) AS total_fines FROM Transactions;
+
+#7
+
+SELECT b.title, a.name AS author_name FROM Books b INNER JOIN Authors a ON b.author_id = a.author_id;
+
+SELECT m.name, t.book_id FROM Members m LEFT JOIN Transactions t ON m.member_id = t.member_id;
+
+SELECT b.title, t.book_id FROM Transactions t RIGHT JOIN Books b ON t.book_id = b.book_id WHERE t.book_id IS NULL;
+
+
+SELECT m.name FROM Members m LEFT JOIN Transactions t ON m.member_id = t.member_id WHERE t.member_id IS NULL;
+
+
+#8
+
+SELECT *
+FROM Books
+WHERE book_id IN (
+SELECT book_id
+FROM Transactions
+WHERE member_id IN (
+SELECT member_id
+FROM Members
+WHERE membership_date > '2022-01-01)
+);
+
+
+SELECT *
+FROM Books
+WHERE book_id = (
+SELECT book_id
+FROM Transactions
+GROUP BY book_id
+ORDER BY COUNT(book_id) DESC
+LIMIT 1
+);
+
+
+SELECT *
+FROM Members
+WHERE member_id NOT IN (
+SELECT DISTINCT member_id
+FROM Transactions
+);
+
+
+#9
+
+SELECT YEAR(published_date) AS publication_year,
+COUNT(*) AS total_books
+FROM Books
+GROUP BY YEAR(published_date);
+
+
+SELECT transaction_id,
+DATEDIFF(return_date, borrow_date) AS days_difference
+FROM Transactions;
+
+
+SELECT transaction_id,
+DATE_FORMAT(borrow_date, '%d-%m-%Y') AS formatted_borrow_date
+FROM Transactions;
+
+#10
+
+SELECT UPPER(title) AS book_title FROM Books;
+
+SELECT TRIM(name) AS author_name FROM Authors;
+
+SELECT name,IFNULL(email, 'Not Provided') AS email FROM Members;
+
+
+#11
+
+SELECT b.book_id,b.title,COUNT(t.book_id) AS borrow_count,
+RANK() OVER (ORDER BY COUNT(t.book_id) DESC) AS borrow_rank
+FROM Books b
+LEFT JOIN Transactions t ON b.book_id = t.book_id
+GROUP BY b.book_id, b.title;
+
+SELECT member_id,borrow_date,
+COUNT(book_id) OVER (
+PARTITION BY member_id
+ORDER BY borrow_date
+ROWS BETWEEN UNBOUNDED PRECEDING AND CURRENT ROW) AS cumulative_books
+FROM Transactions;
+
+
+SELECT borrow_date,
+COUNT(book_id) OVER (
+ORDER BY borrow_date
+RANGE BETWEEN INTERVAL 3 MONTH PRECEDING AND CURRENT ROW) AS moving_avg_borrowed
+FROM Transactions;
+
+
+#12
+
+SELECT m.member_id,m.name,
+CASE
+WHEN m.member_id IN (
+SELECT member_id
+FROM Transactions
+WHERE borrow_date >= DATE_SUB(CURDATE(), INTERVAL 6 MONTH)
+)
+THEN 'Active'
+ELSE 'Inactive'
+END AS Membership_Status
+FROM Members m;
+
+
+SELECT title,published_date,
+CASE
+WHEN published_date > '2020-01-01' THEN 'New Arrival'
+WHEN published_date < '2000-01-01' THEN 'Classic'
+ELSE 'Regular'
+END AS Book_Category
+FROM Books;
+
+
+
+
+
+
+
+
+
